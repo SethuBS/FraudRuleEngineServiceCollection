@@ -55,11 +55,11 @@ $ruleAdminToken = .\scripts\generate-jwt.ps1 -Profile rule-admin
 
 Copy the generated values into the imported Postman environment:
 
-| Environment variable | Token profile |
-| --- | --- |
+| Environment variable  | Token profile     |
+|-----------------------|-------------------|
 | `systemIngestorToken` | `system-ingestor` |
-| `fraudAnalystToken` | `fraud-analyst` |
-| `ruleAdminToken` | `rule-admin` |
+| `fraudAnalystToken`   | `fraud-analyst`   |
+| `ruleAdminToken`      | `rule-admin`      |
 
 These tokens are local-only. Production authentication is expected to come from an external identity provider.
 

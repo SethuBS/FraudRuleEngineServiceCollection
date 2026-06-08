@@ -181,6 +181,7 @@
                   "});",
                   "",
                   "const body = pm.response.json();",
+                  "const ruleCodes = (body.matchedRules || []).map((rule) => rule.ruleCode);",
                   "",
                   "pm.test('high-risk transaction is flagged as critical', function () {",
                   "  pm.expect(body.transactionId).to.eql('tx-high-risk-1');",
@@ -188,6 +189,13 @@
                   "  pm.expect(body.riskLevel).to.eql('CRITICAL');",
                   "  pm.expect(body.riskScore).to.eql(100);",
                   "  pm.expect(body.matchedRules).to.be.an('array').that.is.not.empty;",
+                  "});",
+                  "",
+                  "pm.test('high-risk response includes expected matched rule evidence', function () {",
+                  "  pm.expect(ruleCodes).to.include('HIGH_VALUE_TRANSACTION');",
+                  "  pm.expect(ruleCodes).to.include('FOREIGN_COUNTRY_TRANSACTION');",
+                  "  pm.expect(ruleCodes).to.include('RISKY_MERCHANT_CATEGORY');",
+                  "  pm.expect(ruleCodes).to.include('SUSPICIOUS_MERCHANT');",
                   "});",
                   "",
                   "pm.environment.set('transactionId', body.transactionId);",
@@ -701,6 +709,1460 @@
                   "  pm.expect(body).to.have.property('correlationId');",
                   "  pm.expect(body.fieldErrors).to.be.an('array').that.is.not.empty;",
                   "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - Retrieval And Pagination Edge Cases",
+      "item": [
+        {
+          "name": "Missing Fraud Alert Returns 404",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/fraud-alerts/00000000-0000-0000-0000-000000000000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fraud-alerts",
+                "00000000-0000-0000-0000-000000000000"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{fraudAnalystToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('missing fraud alert returns 404', function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test('missing fraud alert has safe error shape', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.code).to.eql('RESOURCE_NOT_FOUND');",
+                  "  pm.expect(body).to.have.property('correlationId');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Missing Transaction Fraud Evaluation Returns 404",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/tx-missing-collection/fraud-evaluation",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions",
+                "tx-missing-collection",
+                "fraud-evaluation"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{fraudAnalystToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('missing transaction evaluation returns 404', function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test('missing transaction evaluation has safe error shape', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.code).to.eql('RESOURCE_NOT_FOUND');",
+                  "  pm.expect(body).to.have.property('correlationId');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Fraud Alerts Page Size One",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/fraud-alerts?customerId={{customerId}}&riskLevel={{riskLevel}}&page=0&size=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fraud-alerts"
+              ],
+              "query": [
+                {
+                  "key": "customerId",
+                  "value": "{{customerId}}"
+                },
+                {
+                  "key": "riskLevel",
+                  "value": "{{riskLevel}}"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "1"
+                }
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{fraudAnalystToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('page size one returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('page size one honours pagination fields', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.page).to.eql(0);",
+                  "  pm.expect(body.size).to.eql(1);",
+                  "  pm.expect(body.content.length).to.be.at.most(1);",
+                  "  pm.expect(body.totalElements).to.be.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Fraud Alerts By Account And Date Range",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/fraud-alerts?accountId={{accountId}}&fromDate=2026-01-01T00:00:00Z&toDate=2027-01-01T00:00:00Z&page=0&size=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fraud-alerts"
+              ],
+              "query": [
+                {
+                  "key": "accountId",
+                  "value": "{{accountId}}"
+                },
+                {
+                  "key": "fromDate",
+                  "value": "2026-01-01T00:00:00Z"
+                },
+                {
+                  "key": "toDate",
+                  "value": "2027-01-01T00:00:00Z"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "5"
+                }
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{fraudAnalystToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('account and date range filter returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('account and date range filter returns the high-risk alert', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.totalElements).to.be.above(0);",
+                  "  pm.expect(body.content.some((alert) => alert.transactionId === pm.environment.get('transactionId'))).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Fraud Alerts Empty Risk Filter",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/fraud-alerts?customerId={{customerId}}&riskLevel=LOW&page=0&size=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fraud-alerts"
+              ],
+              "query": [
+                {
+                  "key": "customerId",
+                  "value": "{{customerId}}"
+                },
+                {
+                  "key": "riskLevel",
+                  "value": "LOW"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{fraudAnalystToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('empty risk filter returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('empty risk filter returns no alerts', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.totalElements).to.eql(0);",
+                  "  pm.expect(body.content).to.be.an('array').that.is.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Fraud Alerts Invalid Date Range Returns 400",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/fraud-alerts?fromDate=2027-01-01T00:00:00Z&toDate=2026-01-01T00:00:00Z&page=0&size=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fraud-alerts"
+              ],
+              "query": [
+                {
+                  "key": "fromDate",
+                  "value": "2027-01-01T00:00:00Z"
+                },
+                {
+                  "key": "toDate",
+                  "value": "2026-01-01T00:00:00Z"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{fraudAnalystToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('invalid date range returns 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('invalid date range has validation error', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.code).to.eql('VALIDATION_FAILED');",
+                  "  pm.expect(body.fieldErrors).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 - Actuator Protected Endpoints",
+      "item": [
+        {
+          "name": "Actuator Info With Scope",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/info",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "actuator",
+                "info"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{fraudAnalystToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('actuator info returns 200 with actuator scope', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('actuator info returns JSON', function () {",
+                  "  pm.expect(pm.response.json()).to.be.an('object');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Actuator Metrics With Scope",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/metrics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "actuator",
+                "metrics"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{fraudAnalystToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('actuator metrics returns 200 with actuator scope', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('actuator metrics exposes metric names', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.names).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Actuator Prometheus With Scope",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/prometheus",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "actuator",
+                "prometheus"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{fraudAnalystToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('actuator prometheus returns 200 with actuator scope', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('actuator prometheus returns metrics text', function () {",
+                  "  pm.expect(pm.response.text()).to.include('# HELP');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05 - Alternate Evaluation Path",
+      "item": [
+        {
+          "name": "Evaluate Via Transaction Evaluations Path",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transaction-evaluations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transaction-evaluations"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{systemIngestorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"event-alternate-path-1\",\n  \"transactionId\": \"tx-alternate-path-1\",\n  \"customerId\": \"customer-alternate-path-1\",\n  \"accountId\": \"account-alternate-path-1\",\n  \"amount\": 100.5,\n  \"currency\": \"ZAR\",\n  \"transactionTimestamp\": \"2026-06-07T08:00:00Z\",\n  \"merchantCategory\": \"GROCERY\",\n  \"country\": \"ZA\",\n  \"channel\": \"MOBILE\",\n  \"merchantId\": \"merchant-alternate-path-1\",\n  \"merchantName\": \"Corner Shop\",\n  \"deviceId\": \"device-alternate-path-1\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('alternate path evaluation returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "const ruleCodes = (body.matchedRules || []).map((rule) => rule.ruleCode);",
+                  "",
+                  "pm.test('alternate path evaluation has expected decision and score', function () {",
+                  "  pm.expect(body.transactionId).to.eql('tx-alternate-path-1');",
+                  "  pm.expect(body.decision).to.eql('APPROVED');",
+                  "  pm.expect(body.riskLevel).to.eql('LOW');",
+                  "  pm.expect(body.riskScore).to.eql(0);",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06 - Rule And Scoring Scenarios",
+      "item": [
+        {
+          "name": "High Value Boundary Equals Threshold",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/evaluate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions",
+                "evaluate"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{systemIngestorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"event-rule-high-value-boundary-1\",\n  \"transactionId\": \"tx-rule-high-value-boundary-1\",\n  \"customerId\": \"customer-rule-high-value\",\n  \"accountId\": \"account-rule-high-value\",\n  \"amount\": 10000,\n  \"currency\": \"ZAR\",\n  \"transactionTimestamp\": \"2026-06-07T08:00:00Z\",\n  \"merchantCategory\": \"GROCERY\",\n  \"country\": \"ZA\",\n  \"channel\": \"MOBILE\",\n  \"merchantId\": \"merchant-rule-high-value-boundary-1\",\n  \"merchantName\": \"Corner Shop\",\n  \"deviceId\": \"device-rule-high-value-boundary-1\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('high value boundary returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "const ruleCodes = (body.matchedRules || []).map((rule) => rule.ruleCode);",
+                  "",
+                  "pm.test('high value boundary has expected decision and score', function () {",
+                  "  pm.expect(body.transactionId).to.eql('tx-rule-high-value-boundary-1');",
+                  "  pm.expect(body.decision).to.eql('APPROVED');",
+                  "  pm.expect(body.riskLevel).to.eql('LOW');",
+                  "  pm.expect(body.riskScore).to.eql(0);",
+                  "});",
+                  "",
+                  "pm.test('high value boundary excludes HIGH_VALUE_TRANSACTION', function () {",
+                  "  pm.expect(ruleCodes).to.not.include('HIGH_VALUE_TRANSACTION');",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "High Value Above Threshold",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/evaluate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions",
+                "evaluate"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{systemIngestorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"event-rule-high-value-above-1\",\n  \"transactionId\": \"tx-rule-high-value-above-1\",\n  \"customerId\": \"customer-rule-high-value\",\n  \"accountId\": \"account-rule-high-value\",\n  \"amount\": 10000.01,\n  \"currency\": \"ZAR\",\n  \"transactionTimestamp\": \"2026-06-07T08:00:00Z\",\n  \"merchantCategory\": \"GROCERY\",\n  \"country\": \"ZA\",\n  \"channel\": \"MOBILE\",\n  \"merchantId\": \"merchant-rule-high-value-above-1\",\n  \"merchantName\": \"Corner Shop\",\n  \"deviceId\": \"device-rule-high-value-above-1\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('high value above threshold returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "const ruleCodes = (body.matchedRules || []).map((rule) => rule.ruleCode);",
+                  "",
+                  "pm.test('high value above threshold has expected decision and score', function () {",
+                  "  pm.expect(body.transactionId).to.eql('tx-rule-high-value-above-1');",
+                  "  pm.expect(body.decision).to.eql('FLAGGED');",
+                  "  pm.expect(body.riskLevel).to.eql('HIGH');",
+                  "  pm.expect(body.riskScore).to.eql(55);",
+                  "});",
+                  "",
+                  "pm.test('high value above threshold includes HIGH_VALUE_TRANSACTION', function () {",
+                  "  pm.expect(ruleCodes).to.include('HIGH_VALUE_TRANSACTION');",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Foreign Country Rule",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/evaluate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions",
+                "evaluate"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{systemIngestorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"event-rule-foreign-country-1\",\n  \"transactionId\": \"tx-rule-foreign-country-1\",\n  \"customerId\": \"customer-rule-foreign-country-1\",\n  \"accountId\": \"account-rule-foreign-country-1\",\n  \"amount\": 100.5,\n  \"currency\": \"ZAR\",\n  \"transactionTimestamp\": \"2026-06-07T08:00:00Z\",\n  \"merchantCategory\": \"GROCERY\",\n  \"country\": \"US\",\n  \"channel\": \"MOBILE\",\n  \"merchantId\": \"merchant-rule-foreign-country-1\",\n  \"merchantName\": \"Corner Shop\",\n  \"deviceId\": \"device-rule-foreign-country-1\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('foreign country rule returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "const ruleCodes = (body.matchedRules || []).map((rule) => rule.ruleCode);",
+                  "",
+                  "pm.test('foreign country rule has expected decision and score', function () {",
+                  "  pm.expect(body.transactionId).to.eql('tx-rule-foreign-country-1');",
+                  "  pm.expect(body.decision).to.eql('REVIEW');",
+                  "  pm.expect(body.riskLevel).to.eql('MEDIUM');",
+                  "  pm.expect(body.riskScore).to.eql(45);",
+                  "});",
+                  "",
+                  "pm.test('foreign country rule includes FOREIGN_COUNTRY_TRANSACTION', function () {",
+                  "  pm.expect(ruleCodes).to.include('FOREIGN_COUNTRY_TRANSACTION');",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Risky Merchant Category Rule",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/evaluate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions",
+                "evaluate"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{systemIngestorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"event-rule-risky-category-1\",\n  \"transactionId\": \"tx-rule-risky-category-1\",\n  \"customerId\": \"customer-rule-risky-category-1\",\n  \"accountId\": \"account-rule-risky-category-1\",\n  \"amount\": 100.5,\n  \"currency\": \"ZAR\",\n  \"transactionTimestamp\": \"2026-06-07T08:00:00Z\",\n  \"merchantCategory\": \"GAMBLING\",\n  \"country\": \"ZA\",\n  \"channel\": \"MOBILE\",\n  \"merchantId\": \"merchant-rule-risky-category-1\",\n  \"merchantName\": \"Corner Shop\",\n  \"deviceId\": \"device-rule-risky-category-1\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('risky merchant category rule returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "const ruleCodes = (body.matchedRules || []).map((rule) => rule.ruleCode);",
+                  "",
+                  "pm.test('risky merchant category rule has expected decision and score', function () {",
+                  "  pm.expect(body.transactionId).to.eql('tx-rule-risky-category-1');",
+                  "  pm.expect(body.decision).to.eql('REVIEW');",
+                  "  pm.expect(body.riskLevel).to.eql('MEDIUM');",
+                  "  pm.expect(body.riskScore).to.eql(30);",
+                  "});",
+                  "",
+                  "pm.test('risky merchant category rule includes RISKY_MERCHANT_CATEGORY', function () {",
+                  "  pm.expect(ruleCodes).to.include('RISKY_MERCHANT_CATEGORY');",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Suspicious Merchant Rule",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/evaluate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions",
+                "evaluate"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{systemIngestorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"event-rule-suspicious-merchant-1\",\n  \"transactionId\": \"tx-rule-suspicious-merchant-1\",\n  \"customerId\": \"customer-rule-suspicious-merchant-1\",\n  \"accountId\": \"account-rule-suspicious-merchant-1\",\n  \"amount\": 100.5,\n  \"currency\": \"ZAR\",\n  \"transactionTimestamp\": \"2026-06-07T08:00:00Z\",\n  \"merchantCategory\": \"GROCERY\",\n  \"country\": \"ZA\",\n  \"channel\": \"MOBILE\",\n  \"merchantId\": \"MERCHANT-WATCHLIST\",\n  \"merchantName\": \"Corner Shop\",\n  \"deviceId\": \"device-rule-suspicious-merchant-1\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('suspicious merchant rule returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "const ruleCodes = (body.matchedRules || []).map((rule) => rule.ruleCode);",
+                  "",
+                  "pm.test('suspicious merchant rule has expected decision and score', function () {",
+                  "  pm.expect(body.transactionId).to.eql('tx-rule-suspicious-merchant-1');",
+                  "  pm.expect(body.decision).to.eql('FLAGGED');",
+                  "  pm.expect(body.riskLevel).to.eql('HIGH');",
+                  "  pm.expect(body.riskScore).to.eql(50);",
+                  "});",
+                  "",
+                  "pm.test('suspicious merchant rule includes SUSPICIOUS_MERCHANT', function () {",
+                  "  pm.expect(ruleCodes).to.include('SUSPICIOUS_MERCHANT');",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Seed Unusual Amount Baseline",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/evaluate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions",
+                "evaluate"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{systemIngestorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"event-rule-unusual-baseline-1\",\n  \"transactionId\": \"tx-rule-unusual-baseline-1\",\n  \"customerId\": \"customer-rule-unusual\",\n  \"accountId\": \"account-rule-unusual\",\n  \"amount\": 100,\n  \"currency\": \"ZAR\",\n  \"transactionTimestamp\": \"2026-06-07T08:00:00Z\",\n  \"merchantCategory\": \"GROCERY\",\n  \"country\": \"ZA\",\n  \"channel\": \"MOBILE\",\n  \"merchantId\": \"merchant-rule-unusual-baseline-1\",\n  \"merchantName\": \"Corner Shop\",\n  \"deviceId\": \"device-rule-unusual-baseline-1\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('unusual amount baseline returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "const ruleCodes = (body.matchedRules || []).map((rule) => rule.ruleCode);",
+                  "",
+                  "pm.test('unusual amount baseline has expected decision and score', function () {",
+                  "  pm.expect(body.transactionId).to.eql('tx-rule-unusual-baseline-1');",
+                  "  pm.expect(body.decision).to.eql('APPROVED');",
+                  "  pm.expect(body.riskLevel).to.eql('LOW');",
+                  "  pm.expect(body.riskScore).to.eql(0);",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unusual Amount Rule",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/evaluate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions",
+                "evaluate"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{systemIngestorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"event-rule-unusual-trigger-1\",\n  \"transactionId\": \"tx-rule-unusual-trigger-1\",\n  \"customerId\": \"customer-rule-unusual\",\n  \"accountId\": \"account-rule-unusual\",\n  \"amount\": 400,\n  \"currency\": \"ZAR\",\n  \"transactionTimestamp\": \"2026-06-07T08:00:00Z\",\n  \"merchantCategory\": \"GROCERY\",\n  \"country\": \"ZA\",\n  \"channel\": \"MOBILE\",\n  \"merchantId\": \"merchant-rule-unusual-trigger-1\",\n  \"merchantName\": \"Corner Shop\",\n  \"deviceId\": \"device-rule-unusual-trigger-1\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('unusual amount rule returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "const ruleCodes = (body.matchedRules || []).map((rule) => rule.ruleCode);",
+                  "",
+                  "pm.test('unusual amount rule has expected decision and score', function () {",
+                  "  pm.expect(body.transactionId).to.eql('tx-rule-unusual-trigger-1');",
+                  "  pm.expect(body.decision).to.eql('REVIEW');",
+                  "  pm.expect(body.riskLevel).to.eql('MEDIUM');",
+                  "  pm.expect(body.riskScore).to.eql(45);",
+                  "});",
+                  "",
+                  "pm.test('unusual amount rule includes UNUSUAL_AMOUNT', function () {",
+                  "  pm.expect(ruleCodes).to.include('UNUSUAL_AMOUNT');",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Seed Velocity Transaction 1",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/evaluate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions",
+                "evaluate"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{systemIngestorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"event-rule-velocity-seed-1\",\n  \"transactionId\": \"tx-rule-velocity-seed-1\",\n  \"customerId\": \"customer-rule-velocity\",\n  \"accountId\": \"account-rule-velocity\",\n  \"amount\": 10,\n  \"currency\": \"ZAR\",\n  \"transactionTimestamp\": \"2026-06-07T08:01:00Z\",\n  \"merchantCategory\": \"GROCERY\",\n  \"country\": \"ZA\",\n  \"channel\": \"MOBILE\",\n  \"merchantId\": \"merchant-rule-velocity-seed-1\",\n  \"merchantName\": \"Corner Shop\",\n  \"deviceId\": \"device-rule-velocity-seed-1\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('velocity seed 1 returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "const ruleCodes = (body.matchedRules || []).map((rule) => rule.ruleCode);",
+                  "",
+                  "pm.test('velocity seed 1 has expected decision and score', function () {",
+                  "  pm.expect(body.transactionId).to.eql('tx-rule-velocity-seed-1');",
+                  "  pm.expect(body.decision).to.eql('APPROVED');",
+                  "  pm.expect(body.riskLevel).to.eql('LOW');",
+                  "  pm.expect(body.riskScore).to.eql(0);",
+                  "});",
+                  "",
+                  "pm.test('velocity seed 1 excludes VELOCITY_TRANSACTION', function () {",
+                  "  pm.expect(ruleCodes).to.not.include('VELOCITY_TRANSACTION');",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Seed Velocity Transaction 2",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/evaluate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions",
+                "evaluate"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{systemIngestorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"event-rule-velocity-seed-2\",\n  \"transactionId\": \"tx-rule-velocity-seed-2\",\n  \"customerId\": \"customer-rule-velocity\",\n  \"accountId\": \"account-rule-velocity\",\n  \"amount\": 10,\n  \"currency\": \"ZAR\",\n  \"transactionTimestamp\": \"2026-06-07T08:02:00Z\",\n  \"merchantCategory\": \"GROCERY\",\n  \"country\": \"ZA\",\n  \"channel\": \"MOBILE\",\n  \"merchantId\": \"merchant-rule-velocity-seed-2\",\n  \"merchantName\": \"Corner Shop\",\n  \"deviceId\": \"device-rule-velocity-seed-2\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('velocity seed 2 returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "const ruleCodes = (body.matchedRules || []).map((rule) => rule.ruleCode);",
+                  "",
+                  "pm.test('velocity seed 2 has expected decision and score', function () {",
+                  "  pm.expect(body.transactionId).to.eql('tx-rule-velocity-seed-2');",
+                  "  pm.expect(body.decision).to.eql('APPROVED');",
+                  "  pm.expect(body.riskLevel).to.eql('LOW');",
+                  "  pm.expect(body.riskScore).to.eql(0);",
+                  "});",
+                  "",
+                  "pm.test('velocity seed 2 excludes VELOCITY_TRANSACTION', function () {",
+                  "  pm.expect(ruleCodes).to.not.include('VELOCITY_TRANSACTION');",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Seed Velocity Transaction 3",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/evaluate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions",
+                "evaluate"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{systemIngestorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"event-rule-velocity-seed-3\",\n  \"transactionId\": \"tx-rule-velocity-seed-3\",\n  \"customerId\": \"customer-rule-velocity\",\n  \"accountId\": \"account-rule-velocity\",\n  \"amount\": 10,\n  \"currency\": \"ZAR\",\n  \"transactionTimestamp\": \"2026-06-07T08:03:00Z\",\n  \"merchantCategory\": \"GROCERY\",\n  \"country\": \"ZA\",\n  \"channel\": \"MOBILE\",\n  \"merchantId\": \"merchant-rule-velocity-seed-3\",\n  \"merchantName\": \"Corner Shop\",\n  \"deviceId\": \"device-rule-velocity-seed-3\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('velocity seed 3 returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "const ruleCodes = (body.matchedRules || []).map((rule) => rule.ruleCode);",
+                  "",
+                  "pm.test('velocity seed 3 has expected decision and score', function () {",
+                  "  pm.expect(body.transactionId).to.eql('tx-rule-velocity-seed-3');",
+                  "  pm.expect(body.decision).to.eql('APPROVED');",
+                  "  pm.expect(body.riskLevel).to.eql('LOW');",
+                  "  pm.expect(body.riskScore).to.eql(0);",
+                  "});",
+                  "",
+                  "pm.test('velocity seed 3 excludes VELOCITY_TRANSACTION', function () {",
+                  "  pm.expect(ruleCodes).to.not.include('VELOCITY_TRANSACTION');",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Seed Velocity Transaction 4",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/evaluate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions",
+                "evaluate"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{systemIngestorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"event-rule-velocity-seed-4\",\n  \"transactionId\": \"tx-rule-velocity-seed-4\",\n  \"customerId\": \"customer-rule-velocity\",\n  \"accountId\": \"account-rule-velocity\",\n  \"amount\": 10,\n  \"currency\": \"ZAR\",\n  \"transactionTimestamp\": \"2026-06-07T08:04:00Z\",\n  \"merchantCategory\": \"GROCERY\",\n  \"country\": \"ZA\",\n  \"channel\": \"MOBILE\",\n  \"merchantId\": \"merchant-rule-velocity-seed-4\",\n  \"merchantName\": \"Corner Shop\",\n  \"deviceId\": \"device-rule-velocity-seed-4\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('velocity seed 4 returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "const ruleCodes = (body.matchedRules || []).map((rule) => rule.ruleCode);",
+                  "",
+                  "pm.test('velocity seed 4 has expected decision and score', function () {",
+                  "  pm.expect(body.transactionId).to.eql('tx-rule-velocity-seed-4');",
+                  "  pm.expect(body.decision).to.eql('APPROVED');",
+                  "  pm.expect(body.riskLevel).to.eql('LOW');",
+                  "  pm.expect(body.riskScore).to.eql(0);",
+                  "});",
+                  "",
+                  "pm.test('velocity seed 4 excludes VELOCITY_TRANSACTION', function () {",
+                  "  pm.expect(ruleCodes).to.not.include('VELOCITY_TRANSACTION');",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Seed Velocity Transaction 5",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/evaluate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions",
+                "evaluate"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{systemIngestorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"event-rule-velocity-seed-5\",\n  \"transactionId\": \"tx-rule-velocity-seed-5\",\n  \"customerId\": \"customer-rule-velocity\",\n  \"accountId\": \"account-rule-velocity\",\n  \"amount\": 10,\n  \"currency\": \"ZAR\",\n  \"transactionTimestamp\": \"2026-06-07T08:05:00Z\",\n  \"merchantCategory\": \"GROCERY\",\n  \"country\": \"ZA\",\n  \"channel\": \"MOBILE\",\n  \"merchantId\": \"merchant-rule-velocity-seed-5\",\n  \"merchantName\": \"Corner Shop\",\n  \"deviceId\": \"device-rule-velocity-seed-5\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('velocity seed 5 returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "const ruleCodes = (body.matchedRules || []).map((rule) => rule.ruleCode);",
+                  "",
+                  "pm.test('velocity seed 5 has expected decision and score', function () {",
+                  "  pm.expect(body.transactionId).to.eql('tx-rule-velocity-seed-5');",
+                  "  pm.expect(body.decision).to.eql('APPROVED');",
+                  "  pm.expect(body.riskLevel).to.eql('LOW');",
+                  "  pm.expect(body.riskScore).to.eql(0);",
+                  "});",
+                  "",
+                  "pm.test('velocity seed 5 excludes VELOCITY_TRANSACTION', function () {",
+                  "  pm.expect(ruleCodes).to.not.include('VELOCITY_TRANSACTION');",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Velocity Transaction Rule",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/evaluate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions",
+                "evaluate"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{systemIngestorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"event-rule-velocity-trigger-1\",\n  \"transactionId\": \"tx-rule-velocity-trigger-1\",\n  \"customerId\": \"customer-rule-velocity\",\n  \"accountId\": \"account-rule-velocity\",\n  \"amount\": 10,\n  \"currency\": \"ZAR\",\n  \"transactionTimestamp\": \"2026-06-07T08:06:00Z\",\n  \"merchantCategory\": \"GROCERY\",\n  \"country\": \"ZA\",\n  \"channel\": \"MOBILE\",\n  \"merchantId\": \"merchant-rule-velocity-trigger-1\",\n  \"merchantName\": \"Corner Shop\",\n  \"deviceId\": \"device-rule-velocity-trigger-1\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('velocity transaction rule returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "const ruleCodes = (body.matchedRules || []).map((rule) => rule.ruleCode);",
+                  "",
+                  "pm.test('velocity transaction rule has expected decision and score', function () {",
+                  "  pm.expect(body.transactionId).to.eql('tx-rule-velocity-trigger-1');",
+                  "  pm.expect(body.decision).to.eql('REVIEW');",
+                  "  pm.expect(body.riskLevel).to.eql('MEDIUM');",
+                  "  pm.expect(body.riskScore).to.eql(35);",
+                  "});",
+                  "",
+                  "pm.test('velocity transaction rule includes VELOCITY_TRANSACTION', function () {",
+                  "  pm.expect(ruleCodes).to.include('VELOCITY_TRANSACTION');",
+                  "});",
+                  ""
                 ]
               }
             }

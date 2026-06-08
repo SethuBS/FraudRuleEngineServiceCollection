@@ -28,10 +28,11 @@ The collection is intentionally small and reviewer-focused. It exercises the sam
 
 ## Start The Service
 
-From the `FraudRuleEngineService` repository:
+From any working directory, clone and start `FraudRuleEngineService`:
 
 ```powershell
-cd C:\Development\FraudRuleEngineService
+git clone https://github.com/SethuBS/FraudRuleEngineService.git
+cd FraudRuleEngineService
 docker compose up --build
 ```
 
@@ -93,10 +94,9 @@ newman run .\postman\FraudRuleEngineService.postman_collection.json `
 
 ## Reset Test Data
 
-For a completely clean service database:
+For a completely clean service database, run this from your `FraudRuleEngineService` repository root:
 
 ```powershell
-cd C:\Development\FraudRuleEngineService
 docker compose down -v
 docker compose up --build
 ```

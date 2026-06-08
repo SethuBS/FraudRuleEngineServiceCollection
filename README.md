@@ -64,6 +64,8 @@ fraudAnalystToken="$(./scripts/generate-jwt.sh --profile fraud-analyst)"
 ruleAdminToken="$(./scripts/generate-jwt.sh --profile rule-admin)"
 ```
 
+The transaction evaluation request uses `systemIngestorToken`. If `POST /api/v1/transactions/evaluate` returns `403 ACCESS_DENIED` with `Required scope is missing`, the token is valid but it does not contain `transactions:evaluate`. Regenerate the `system-ingestor` token and paste that value into `systemIngestorToken`.
+
 Copy the generated values into the imported Postman environment:
 
 | Environment variable  | Token profile     |

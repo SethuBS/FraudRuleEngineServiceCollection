@@ -46,12 +46,22 @@ Override `baseUrl` in the Postman environment if the service is exposed elsewher
 
 ## Generate Local JWT Tokens
 
-From the `FraudRuleEngineService` repository:
+From the `FraudRuleEngineService` repository, use the syntax for your shell.
+
+PowerShell:
 
 ```powershell
 $systemIngestorToken = .\scripts\generate-jwt.ps1 -Profile system-ingestor
 $fraudAnalystToken = .\scripts\generate-jwt.ps1 -Profile fraud-analyst
 $ruleAdminToken = .\scripts\generate-jwt.ps1 -Profile rule-admin
+```
+
+Bash or Git Bash:
+
+```bash
+systemIngestorToken="$(./scripts/generate-jwt.sh --profile system-ingestor)"
+fraudAnalystToken="$(./scripts/generate-jwt.sh --profile fraud-analyst)"
+ruleAdminToken="$(./scripts/generate-jwt.sh --profile rule-admin)"
 ```
 
 Copy the generated values into the imported Postman environment:
@@ -82,13 +92,23 @@ The smoke flow captures these variables as it runs:
 
 ## Newman
 
-If Newman is available, run:
+If Newman is available, run with PowerShell:
 
 ```powershell
 newman run .\postman\FraudRuleEngineService.postman_collection.json `
   -e .\postman\FraudRuleEngineService.local.postman_environment.json `
   --env-var "systemIngestorToken=$systemIngestorToken" `
   --env-var "fraudAnalystToken=$fraudAnalystToken" `
+  --env-var "ruleAdminToken=$ruleAdminToken"
+```
+
+Or run with Bash or Git Bash:
+
+```bash
+newman run ./postman/FraudRuleEngineService.postman_collection.json \
+  -e ./postman/FraudRuleEngineService.local.postman_environment.json \
+  --env-var "systemIngestorToken=$systemIngestorToken" \
+  --env-var "fraudAnalystToken=$fraudAnalystToken" \
   --env-var "ruleAdminToken=$ruleAdminToken"
 ```
 

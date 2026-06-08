@@ -13,6 +13,11 @@ The collection is intentionally small and reviewer-focused. It exercises the sam
 7. Retrieve the stored transaction fraud evaluation.
 8. Run a low-risk evaluation sample.
 9. Check common validation and security failures.
+10. Check missing-resource `404` responses.
+11. Check fraud alert pagination and filter edge cases.
+12. Check protected actuator endpoints with an analyst token.
+13. Check the alternate transaction evaluation path.
+14. Check API-level rule and scoring scenarios for each fraud rule.
 
 ## Files
 
@@ -128,22 +133,32 @@ The high-risk sample is idempotent. Re-running the collection should return the 
 ## Included API Coverage
 
 - `GET /actuator/health/readiness`
+- `GET /actuator/info`
+- `GET /actuator/metrics`
+- `GET /actuator/prometheus`
 - `GET /swagger-ui/index.html`
 - `GET /v3/api-docs`
 - `POST /api/v1/transactions/evaluate`
+- `POST /api/v1/transaction-evaluations`
 - `GET /api/v1/fraud-alerts`
 - `GET /api/v1/fraud-alerts/{alertId}`
 - `GET /api/v1/transactions/{transactionId}/fraud-evaluation`
 - Missing token returns `401`.
 - Wrong scope returns `403`.
 - Invalid request returns `400`.
+- Missing fraud alert returns `404`.
+- Missing transaction fraud evaluation returns `404`.
+- Fraud alert list pagination uses `page` and `size`.
+- Fraud alert filters cover `customerId`, `accountId`, `riskLevel`, `fromDate`, and `toDate`.
+- High-value boundary checks prove amount equal to the threshold does not match the high-value rule.
+- Rule scenarios exercise high value, foreign country, risky merchant category, suspicious merchant, unusual amount, and velocity rule outcomes.
 
 ## Verification
 
 The collection was verified locally with Newman against `FraudRuleEngineService` on `http://localhost:8080`:
 
 ```text
-13 requests
-22 assertions
+36 requests
+81 assertions
 0 failures
 ```

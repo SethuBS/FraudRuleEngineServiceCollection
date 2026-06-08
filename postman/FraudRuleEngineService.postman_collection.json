@@ -1,0 +1,712 @@
+{
+  "info": {
+    "_postman_id": "f6ec8f75-87e8-4735-8e19-aac3e19f8b87",
+    "name": "FraudRuleEngineService",
+    "description": "Reviewer-focused Postman collection for the FraudRuleEngineService local API.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.request.headers.upsert({",
+          "  key: 'X-Correlation-ID',",
+          "  value: pm.variables.replaceIn('postman-{{$guid}}')",
+          "});"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - Health And Docs",
+      "item": [
+        {
+          "name": "Readiness",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health/readiness",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "actuator",
+                "health",
+                "readiness"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('readiness returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('service is ready', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.status).to.eql('UP');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Swagger UI",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/swagger-ui/index.html",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "swagger-ui",
+                "index.html"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('swagger ui returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "OpenAPI JSON",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v3/api-docs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v3",
+                "api-docs"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('openapi returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('openapi title matches service', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.info.title).to.eql('Fraud Rule Engine Service API');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 - Reviewer Smoke Flow",
+      "item": [
+        {
+          "name": "Evaluate High Risk Transaction",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{systemIngestorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"event-high-risk-1\",\n  \"transactionId\": \"tx-high-risk-1\",\n  \"customerId\": \"customer-1\",\n  \"accountId\": \"account-1\",\n  \"amount\": 25000.00,\n  \"currency\": \"ZAR\",\n  \"transactionTimestamp\": \"2026-06-07T08:00:00Z\",\n  \"merchantCategory\": \"CRYPTO\",\n  \"country\": \"US\",\n  \"channel\": \"MOBILE\",\n  \"merchantId\": \"MERCHANT-WATCHLIST\",\n  \"merchantName\": \"High Risk Traders\",\n  \"deviceId\": \"device-1\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/evaluate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions",
+                "evaluate"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('high-risk evaluation returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('high-risk transaction is flagged as critical', function () {",
+                  "  pm.expect(body.transactionId).to.eql('tx-high-risk-1');",
+                  "  pm.expect(body.decision).to.eql('FLAGGED');",
+                  "  pm.expect(body.riskLevel).to.eql('CRITICAL');",
+                  "  pm.expect(body.riskScore).to.eql(100);",
+                  "  pm.expect(body.matchedRules).to.be.an('array').that.is.not.empty;",
+                  "});",
+                  "",
+                  "pm.environment.set('transactionId', body.transactionId);",
+                  "pm.environment.set('customerId', body.customerId);",
+                  "pm.environment.set('accountId', body.accountId);",
+                  "pm.environment.set('riskLevel', body.riskLevel);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit Duplicate Event",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{systemIngestorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"event-high-risk-1\",\n  \"transactionId\": \"tx-high-risk-1\",\n  \"customerId\": \"customer-1\",\n  \"accountId\": \"account-1\",\n  \"amount\": 25000.00,\n  \"currency\": \"ZAR\",\n  \"transactionTimestamp\": \"2026-06-07T08:00:00Z\",\n  \"merchantCategory\": \"CRYPTO\",\n  \"country\": \"US\",\n  \"channel\": \"MOBILE\",\n  \"merchantId\": \"MERCHANT-WATCHLIST\",\n  \"merchantName\": \"High Risk Traders\",\n  \"deviceId\": \"device-1\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/evaluate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions",
+                "evaluate"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('duplicate event returns deterministic 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('duplicate response is the stored high-risk evaluation', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.transactionId).to.eql(pm.environment.get('transactionId'));",
+                  "  pm.expect(body.decision).to.eql('FLAGGED');",
+                  "  pm.expect(body.riskLevel).to.eql('CRITICAL');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Fraud Alerts",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{fraudAnalystToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/fraud-alerts?customerId={{customerId}}&riskLevel={{riskLevel}}&page=0&size=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fraud-alerts"
+              ],
+              "query": [
+                {
+                  "key": "customerId",
+                  "value": "{{customerId}}"
+                },
+                {
+                  "key": "riskLevel",
+                  "value": "{{riskLevel}}"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('fraud alert list returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "const alerts = body.content || [];",
+                  "",
+                  "pm.test('high-risk alert is returned', function () {",
+                  "  pm.expect(body.totalElements).to.be.above(0);",
+                  "  pm.expect(alerts.length).to.be.above(0);",
+                  "});",
+                  "",
+                  "const transactionId = pm.environment.get('transactionId');",
+                  "const alert = alerts.find((item) => item.transactionId === transactionId) || alerts[0];",
+                  "if (alert) {",
+                  "  pm.environment.set('alertId', alert.alertId);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Fraud Alert By Id",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{fraudAnalystToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/fraud-alerts/{{alertId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fraud-alerts",
+                "{{alertId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('fraud alert detail returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('fraud alert detail matches captured alert', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.alertId).to.eql(pm.environment.get('alertId'));",
+                  "  pm.expect(body.transactionId).to.eql(pm.environment.get('transactionId'));",
+                  "  pm.expect(body.riskLevel).to.eql(pm.environment.get('riskLevel'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Transaction Fraud Evaluation",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{fraudAnalystToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/{{transactionId}}/fraud-evaluation",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions",
+                "{{transactionId}}",
+                "fraud-evaluation"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('stored evaluation returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('stored evaluation matches captured transaction', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.transactionId).to.eql(pm.environment.get('transactionId'));",
+                  "  pm.expect(body.decision).to.eql('FLAGGED');",
+                  "  pm.expect(body.riskLevel).to.eql(pm.environment.get('riskLevel'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Evaluate Low Risk Transaction",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{systemIngestorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"event-low-risk-1\",\n  \"transactionId\": \"tx-low-risk-1\",\n  \"customerId\": \"customer-1\",\n  \"accountId\": \"account-1\",\n  \"amount\": 100.50,\n  \"currency\": \"ZAR\",\n  \"transactionTimestamp\": \"2026-06-07T08:00:00Z\",\n  \"merchantCategory\": \"GROCERY\",\n  \"country\": \"ZA\",\n  \"channel\": \"MOBILE\",\n  \"merchantId\": \"merchant-1\",\n  \"merchantName\": \"Corner Shop\",\n  \"deviceId\": \"device-1\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/evaluate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions",
+                "evaluate"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('low-risk evaluation returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('low-risk response has expected transaction id and decision fields', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.transactionId).to.eql('tx-low-risk-1');",
+                  "  pm.expect(body).to.have.property('decision');",
+                  "  pm.expect(body).to.have.property('riskLevel');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - Negative Security And Validation",
+      "item": [
+        {
+          "name": "Missing Token Returns 401",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"event-auth-missing-1\",\n  \"transactionId\": \"tx-auth-missing-1\",\n  \"customerId\": \"customer-1\",\n  \"accountId\": \"account-1\",\n  \"amount\": 100.50,\n  \"currency\": \"ZAR\",\n  \"transactionTimestamp\": \"2026-06-07T08:00:00Z\",\n  \"merchantCategory\": \"GROCERY\",\n  \"country\": \"ZA\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/evaluate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions",
+                "evaluate"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('missing token returns 401', function () {",
+                  "  pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Invalid Token Returns 401",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "not-a-real-jwt",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/fraud-alerts?page=0&size=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "fraud-alerts"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('invalid token returns 401', function () {",
+                  "  pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Wrong Scope Returns 403",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{fraudAnalystToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"event-wrong-scope-1\",\n  \"transactionId\": \"tx-wrong-scope-1\",\n  \"customerId\": \"customer-1\",\n  \"accountId\": \"account-1\",\n  \"amount\": 100.50,\n  \"currency\": \"ZAR\",\n  \"transactionTimestamp\": \"2026-06-07T08:00:00Z\",\n  \"merchantCategory\": \"GROCERY\",\n  \"country\": \"ZA\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/evaluate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions",
+                "evaluate"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('wrong scope returns 403', function () {",
+                  "  pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Invalid Request Returns 400",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{systemIngestorToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"\",\n  \"transactionId\": \"\",\n  \"customerId\": \"\",\n  \"accountId\": \"\",\n  \"amount\": -1,\n  \"currency\": \"\",\n  \"transactionTimestamp\": null,\n  \"merchantCategory\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions/evaluate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "transactions",
+                "evaluate"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('invalid request returns 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('validation response has safe error shape', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('code');",
+                  "  pm.expect(body).to.have.property('message');",
+                  "  pm.expect(body).to.have.property('correlationId');",
+                  "  pm.expect(body.fieldErrors).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

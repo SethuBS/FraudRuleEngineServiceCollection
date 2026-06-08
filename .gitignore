@@ -1,0 +1,8 @@
+.local/
+.idea/
+*.jwt
+*.token
+*.postman_environment.local.json
+newman/
+newman-report*.json
+newman-report*.html
